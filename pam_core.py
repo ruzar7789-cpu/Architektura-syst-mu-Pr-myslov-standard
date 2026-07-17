@@ -1,26 +1,23 @@
 import numpy as np
 
 class MaintenanceEngine:
-    def __init__(self, sampling_rate=44100):
-        self.sr = sampling_rate
-        self.reference_spectrum = None # Zde se uloží „zdravý“ podpis stroje
+    def __init__(self):
+        self.baseline_rms = None
 
-    def set_reference(self, audio_data):
-        """Uloží referenční zvukový podpis stroje."""
-        self.reference_spectrum = np.abs(np.fft.rfft(audio_data))
+    def calculate_rms(self, data_list):
+        """Vypočítá energii vibrací."""
+        data = np.array(data_list)
+        return np.sqrt(np.mean(data**2))
 
-    def analyze(self, audio_data):
-        """Porovná aktuální zvuk s referencí a vyhodnotí shodu."""
-        if self.reference_spectrum is None:
-            return "NO_REFERENCE"
-            
-        current_spectrum = np.abs(np.fft.rfft(audio_data))
+    def set_baseline(self, rms_value):
+        self.baseline_rms = rms_value
+
+    def analyze(self, current_rms):
+        if self.baseline_rms is None:
+            return "NENASTAVENO", 0
         
-        # Výpočet rozdílu (Root Mean Square Error mezi spektry)
-        # Pokud je chyba vysoká, stroj se chová jinak než když byl zdravý
-        error = np.sqrt(np.mean((current_spectrum - self.reference_spectrum)**2))
+        # Procento odchylky od zdravého stavu
+        diff = abs(current_rms - self.baseline_rms) / self.baseline_rms
+        status = "STABILNÍ" if diff < 0.2 else "VAROVÁNÍ"
+        return status, diff
         
-        # Normalizovaná citlivost
-        if error > 2000: # Tuto hodnotu lze kalibrovat
-            return "ANOMALY_DETECTED"
-        return "HEALTHY"
