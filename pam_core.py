@@ -3,11 +3,11 @@ import numpy as np
 class MaintenanceEngine:
     def __init__(self):
         self.baseline_rms = None
+        self.history = []
 
-    def calculate_rms(self, data_list):
-        """Vypočítá energii vibrací."""
-        data = np.array(data_list)
-        return np.sqrt(np.mean(data**2))
+    def calculate_rms(self, data):
+        """Vypočítá energii vibrací z pole dat."""
+        return np.sqrt(np.mean(np.array(data)**2))
 
     def set_baseline(self, rms_value):
         self.baseline_rms = rms_value
@@ -16,8 +16,10 @@ class MaintenanceEngine:
         if self.baseline_rms is None:
             return "NENASTAVENO", 0
         
-        # Procento odchylky od zdravého stavu
-        diff = abs(current_rms - self.baseline_rms) / self.baseline_rms
-        status = "STABILNÍ" if diff < 0.2 else "VAROVÁNÍ"
+        # Výpočet odchylky
+        diff = (current_rms - self.baseline_rms) / self.baseline_rms
+        self.history.append(diff)
+        
+        status = "STABILNÍ" if abs(diff) < 0.2 else "VAROVÁNÍ"
         return status, diff
         
