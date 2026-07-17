@@ -1,43 +1,32 @@
 import streamlit as st
-import streamlit.components.v1 as components
+import time
 from pam_core import MaintenanceEngine
 
-st.set_page_config(page_title="PAM-Pro Industrial", layout="wide")
-
-if 'engine' not in st.session_state:
-    st.session_state.engine = MaintenanceEngine()
+# ... (inicializace engine zůstává stejná) ...
 
 st.title("🛡️ PAM-Pro: Industrial Diagnostic Suite")
 
-# JavaScript Bridge pro přístup k akcelerometru telefonu
-sensor_bridge = """
-<script>
-    if (window.DeviceMotionEvent) {
-        window.addEventListener('devicemotion', (event) => {
-            const {x, y, z} = event.accelerationIncludingGravity;
-            window.parent.postMessage({type: 'sensor', x, y, z}, '*');
-        });
-    }
-</script>
-"""
-components.html(sensor_bridge, height=0)
+# 1. Stavový indikátor
+status_placeholder = st.empty()
+status_placeholder.info("Připraveno k měření. Přiložte telefon ke stroji.")
 
-# Uživatelské rozhraní
+# 2. Vylepšená tlačítka
 col1, col2 = st.columns(2)
+
 with col1:
-    if st.button("Uložit referenci (Baseline)"):
-        # V ostré verzi zde bude volání pro načtení aktuálního RMS
+    if st.button("CALIBRATE (Start 5s)"):
+        status_placeholder.warning("Kalibruji... prosím držte telefon v klidu (5s).")
+        time.sleep(5) # Simulace sběru dat
         st.session_state.engine.set_baseline(0.5) 
-        st.success("Referenční stav stroje uložen.")
+        status_placeholder.success("Kalibrace dokončena. Stroj je nyní referencí.")
 
 with col2:
-    if st.button("Provést měření"):
-        # Simulace měření dat (v budoucnu napojeno na reálný stream)
+    if st.button("DIAGNOSE (Start 3s)"):
+        status_placeholder.warning("Měřím vibrace a hluk... (3s).")
+        time.sleep(3) # Simulace sběru dat
         status, diff = st.session_state.engine.analyze(0.7)
-        st.metric("Status stroje", status, f"{diff:.2%}")
+        status_placeholder.metric("Výsledek diagnostiky", status, f"{diff:.2%}")
 
-# Graf trendu - kompletní vizualizace
-if len(st.session_state.engine.history) > 0:
-    st.subheader("Trend degradace")
-    st.line_chart(st.session_state.engine.history)
-    
+# 3. Graf trendu
+st.subheader("Historie měření")
+st.line_chart(st.session_state.engine.history if st.session_state.engine.history else [0])
