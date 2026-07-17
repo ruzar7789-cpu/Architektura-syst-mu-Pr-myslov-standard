@@ -1,32 +1,25 @@
 import streamlit as st
-import time
+import pandas as pd
 from pam_core import MaintenanceEngine
 
-# ... (inicializace engine zůstává stejná) ...
+st.title("🛡️ PAM-Pro: Industrial Suite")
+engine = MaintenanceEngine()
 
-st.title("🛡️ PAM-Pro: Industrial Diagnostic Suite")
+# Diagnostické menu
+if st.button("Provést diagnostiku"):
+    status = "VAROVÁNÍ" # (Zde bude logika z akcelerometru)
+    diff = 0.31
+    
+    # 1. Uložit do DB
+    engine.save_result(status, diff)
+    st.success("Data uložena do databáze.")
+    
+    # 2. Generovat PDF
+    pdf_path = engine.generate_pdf(status, diff)
+    with open(pdf_path, "rb") as f:
+        st.download_button("Stáhnout servisní report (PDF)", f, "report.pdf")
 
-# 1. Stavový indikátor
-status_placeholder = st.empty()
-status_placeholder.info("Připraveno k měření. Přiložte telefon ke stroji.")
-
-# 2. Vylepšená tlačítka
-col1, col2 = st.columns(2)
-
-with col1:
-    if st.button("CALIBRATE (Start 5s)"):
-        status_placeholder.warning("Kalibruji... prosím držte telefon v klidu (5s).")
-        time.sleep(5) # Simulace sběru dat
-        st.session_state.engine.set_baseline(0.5) 
-        status_placeholder.success("Kalibrace dokončena. Stroj je nyní referencí.")
-
-with col2:
-    if st.button("DIAGNOSE (Start 3s)"):
-        status_placeholder.warning("Měřím vibrace a hluk... (3s).")
-        time.sleep(3) # Simulace sběru dat
-        status, diff = st.session_state.engine.analyze(0.7)
-        status_placeholder.metric("Výsledek diagnostiky", status, f"{diff:.2%}")
-
-# 3. Graf trendu
+# 3. Zobrazení historie z databáze
 st.subheader("Historie měření")
-st.line_chart(st.session_state.engine.history if st.session_state.engine.history else [0])
+df = pd.read_sql_query("SELECT * FROM history", engine.conn)
+st.table(df)
