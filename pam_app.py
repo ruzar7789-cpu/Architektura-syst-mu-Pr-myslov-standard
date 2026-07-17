@@ -1,28 +1,38 @@
 import streamlit as st
-import numpy as np
-from pam_engine import PAMEngine
+import streamlit.components.v1 as components
 
-st.set_page_config(page_title="PAM-Pro Industrial", layout="centered")
-
-if 'engine' not in st.session_state:
-    st.session_state.engine = PAMEngine()
+st.set_page_config(page_title="PAM-Pro Industrial", layout="wide")
 
 st.title("🛡️ PAM-Pro: Industrial Diagnostic Suite")
 
-# Kalibrace
-with st.expander("Kalibrace stroje (Baseline)"):
-    if st.button("Uložit zdravý stav"):
-        # V reálu zde bude sběr dat z mikrofonu/akcelerometru
-        st.session_state.engine.train_baseline(np.random.rand(44100), np.random.rand(100))
-        st.success("Referenční profil stroje byl vytvořen.")
-
-# Diagnostika
-st.subheader("Analýza anomálií")
-if st.button("Provést hloubkovou diagnostiku"):
-    res = st.session_state.engine.detect_anomaly(np.random.rand(44100), np.random.rand(100))
-    
-    if res['status'] == "CRITICAL":
-        st.error(f"⚠️ DETEKOVÁNA ANOMÁLIE (Odchylka: {res['deviation']:.4f})")
-    else:
-        st.success(f"✅ Stroj je v toleranci (Odchylka: {res['deviation']:.4f})")
+# JavaScript komponenta, která čte senzory telefonu
+sensor_code = """
+<script>
+async function startSensors() {
+    try {
+        // Akcelerometr
+        const acl = new Accelerometer({frequency: 60});
+        acl.addEventListener('reading', () => {
+            window.parent.postMessage({type: 'accel', x: acl.x, y: acl.y, z: acl.z}, '*');
+        });
+        acl.start();
         
+        // Mikrofon
+        const stream = await navigator.mediaDevices.getUserMedia({audio: true});
+        const audioContext = new AudioContext();
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyser = audioContext.createAnalyser();
+        source.connect(analyser);
+        
+        // Zde by probíhalo zpracování dat
+        console.log("Senzory aktivní");
+    } catch (e) {
+        console.error("Chyba přístupu k senzorům:", e);
+    }
+}
+startSensors();
+</script>
+"""
+components.html(sensor_code, height=0)
+
+st.info("Senzory telefonu (akcelerometr a mikrofon) byly inicializovány.")
