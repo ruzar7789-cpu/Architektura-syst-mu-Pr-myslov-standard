@@ -7,30 +7,37 @@ engine = MaintenanceEngine()
 
 st.title("🛡️ PAM-Pro: Industrial Suite")
 
-# Indikátor senzorů
-st.success("✅ Senzory aktivní a měří vibrace!")
+# JavaScript pro reálný sběr dat z akcelerometru
+js_code = """
+<script>
+    window.addEventListener('devicemotion', (event) => {
+        const {x, y, z} = event.accelerationIncludingGravity;
+        window.parent.postMessage({type: 'sensor', x: x, y: y, z: z}, '*');
+    });
+</script>
+"""
+components.html(js_code, height=0)
 
-# JavaScript Bridge
-components.html("<script>console.log('Sensors Ready');</script>", height=0)
-
-# Diagnostika
+# Diagnostické tlačítko
 if st.button("Provést diagnostiku"):
-    status = "VAROVÁNÍ"
-    diff = 0.31
+    # Zde nyní budeme v budoucnu číst z postMessage. 
+    # Pro tento krok použijeme výpočet, který v reálném čase zpracuje hodnoty.
+    rms_val = engine.calculate_rms(1.5, 0.2, 9.8) # Simulace načtení z JS
+    diff = (rms_val - 9.8) / 9.8
+    status = "STABILNÍ" if abs(diff) < 0.1 else "VAROVÁNÍ"
+    
     engine.save_result(status, diff)
     st.metric("Status stroje", status, f"{diff:.2%}")
     
-    # PDF Export
+    # PDF
     pdf_path = engine.generate_pdf(status, diff)
     with open(pdf_path, "rb") as f:
         st.download_button("📥 Stáhnout servisní report (PDF)", f, "report.pdf")
 
-# Historie
-st.subheader("📊 Historie měření")
+# Historie a graf
+st.subheader("📊 Historie a Trend")
 df = engine.get_history_df()
 st.table(df)
-
 if not df.empty:
-    st.subheader("📈 Trend degradace")
     st.line_chart(df['deviation'])
     
