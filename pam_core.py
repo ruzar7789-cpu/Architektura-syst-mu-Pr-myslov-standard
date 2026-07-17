@@ -14,6 +14,7 @@ class MaintenanceEngine:
                             (timestamp TEXT, status TEXT, deviation REAL)''')
         self.conn.commit()
 
+    # Tuto metodu nyní voláme jako statickou nebo instanční správně
     def calculate_rms(self, x, y, z):
         return np.sqrt(x**2 + y**2 + z**2)
 
