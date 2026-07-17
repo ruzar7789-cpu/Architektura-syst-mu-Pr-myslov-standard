@@ -1,5 +1,6 @@
 import sqlite3
 import datetime
+import pandas as pd
 from fpdf import FPDF
 
 class MaintenanceEngine:
@@ -17,9 +18,8 @@ class MaintenanceEngine:
         self.conn.execute("INSERT INTO history VALUES (?, ?, ?)", (timestamp, status, diff))
         self.conn.commit()
 
-    def get_history(self):
-        cursor = self.conn.execute("SELECT * FROM history")
-        return cursor.fetchall()
+    def get_history_df(self):
+        return pd.read_sql_query("SELECT * FROM history ORDER BY timestamp DESC", self.conn)
 
     def generate_pdf(self, status, diff):
         pdf = FPDF()
@@ -27,8 +27,9 @@ class MaintenanceEngine:
         pdf.set_font("Arial", 'B', 16)
         pdf.cell(200, 10, txt="PAM-Pro Servisni Report", ln=True, align='C')
         pdf.set_font("Arial", size=12)
-        pdf.cell(200, 10, txt=f"Stav: {status}", ln=True)
-        pdf.cell(200, 10, txt=f"Odchylka: {diff:.2%}", ln=True)
+        pdf.cell(200, 10, txt=f"Datum: {datetime.datetime.now()}", ln=True)
+        pdf.cell(200, 10, txt=f"Stav stroje: {status}", ln=True)
+        pdf.cell(200, 10, txt=f"Odchylka vibraci: {diff:.2%}", ln=True)
         filename = "report.pdf"
         pdf.output(filename)
         return filename
