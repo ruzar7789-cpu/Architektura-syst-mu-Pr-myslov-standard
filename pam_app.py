@@ -1,34 +1,28 @@
 import streamlit as st
 import numpy as np
-from pam_core import MaintenanceEngine
+from pam_engine import PAMEngine
 
-st.set_page_config(page_title="PAM Pro", layout="wide")
+st.set_page_config(page_title="PAM-Pro Industrial", layout="centered")
 
 if 'engine' not in st.session_state:
-    st.session_state.engine = MaintenanceEngine()
+    st.session_state.engine = PAMEngine()
 
-st.title("⚙️ PAM: Industrial Predictive Diagnostic")
+st.title("🛡️ PAM-Pro: Industrial Diagnostic Suite")
 
-# Režim kalibrace
-st.sidebar.header("Nastavení")
-mode = st.sidebar.radio("Režim:", ["Kalibrace (Uložit zdravý stav)", "Diagnostika"])
+# Kalibrace
+with st.expander("Kalibrace stroje (Baseline)"):
+    if st.button("Uložit zdravý stav"):
+        # V reálu zde bude sběr dat z mikrofonu/akcelerometru
+        st.session_state.engine.train_baseline(np.random.rand(44100), np.random.rand(100))
+        st.success("Referenční profil stroje byl vytvořen.")
 
-if mode == "Kalibrace (Uložit zdravý stav)":
-    st.write("Nahrajte referenční zvuk stroje v bezvadném stavu.")
-    if st.button("Uložit referenci"):
-        ref_data = np.random.normal(0, 0.1, 44100) # Simulace nahrávky
-        st.session_state.engine.set_reference(ref_data)
-        st.success("Referenční podpis stroje uložen.")
-
-else:
-    st.write("Diagnostika stavu stroje.")
-    if st.button("Analyzovat"):
-        current_data = np.random.normal(0, 0.12, 44100) # Simulace mírně odlišného zvuku
-        result = st.session_state.engine.analyze(current_data)
+# Diagnostika
+st.subheader("Analýza anomálií")
+if st.button("Provést hloubkovou diagnostiku"):
+    res = st.session_state.engine.detect_anomaly(np.random.rand(44100), np.random.rand(100))
+    
+    if res['status'] == "CRITICAL":
+        st.error(f"⚠️ DETEKOVÁNA ANOMÁLIE (Odchylka: {res['deviation']:.4f})")
+    else:
+        st.success(f"✅ Stroj je v toleranci (Odchylka: {res['deviation']:.4f})")
         
-        if result == "ANOMALY_DETECTED":
-            st.error("⚠️ ANOMÁLIE: Zvuk stroje se liší od referenčního stavu!")
-        elif result == "HEALTHY":
-            st.success("✅ Stroj je v normě (odpovídá referenci).")
-        else:
-            st.warning("Nejdříve proveďte kalibraci stroje.")
