@@ -2,6 +2,7 @@ import sqlite3
 import datetime
 import pandas as pd
 from fpdf import FPDF
+import numpy as np
 
 class MaintenanceEngine:
     def __init__(self):
@@ -12,6 +13,9 @@ class MaintenanceEngine:
         self.conn.execute('''CREATE TABLE IF NOT EXISTS history 
                             (timestamp TEXT, status TEXT, deviation REAL)''')
         self.conn.commit()
+
+    def calculate_rms(self, x, y, z):
+        return np.sqrt(x**2 + y**2 + z**2)
 
     def save_result(self, status, diff):
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -27,7 +31,6 @@ class MaintenanceEngine:
         pdf.set_font("Arial", 'B', 16)
         pdf.cell(200, 10, txt="PAM-Pro Servisni Report", ln=True, align='C')
         pdf.set_font("Arial", size=12)
-        pdf.cell(200, 10, txt=f"Datum: {datetime.datetime.now()}", ln=True)
         pdf.cell(200, 10, txt=f"Stav stroje: {status}", ln=True)
         pdf.cell(200, 10, txt=f"Odchylka vibraci: {diff:.2%}", ln=True)
         filename = "report.pdf"
