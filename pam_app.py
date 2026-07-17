@@ -1,44 +1,38 @@
 import streamlit as st
-import streamlit.components.v1 as components
+import numpy as np
+import pandas as pd
 from pam_core import MaintenanceEngine
 
 st.set_page_config(page_title="PAM-Pro Industrial", layout="wide")
+
 if 'engine' not in st.session_state:
     st.session_state.engine = MaintenanceEngine()
 
 st.title("🛡️ PAM-Pro: Industrial Diagnostic Suite")
 
-# JavaScript pro čtení senzorů a odesílání do Streamlitu
-sensor_js = """
-<script>
-    const stream = new EventSource("/stream"); // Streamování dat
-    window.addEventListener("message", (e) => {
-        if (e.data.type === 'accel') {
-            const rms = Math.sqrt(e.data.x**2 + e.data.y**2 + e.data.z**2);
-            // Odeslání do Streamlitu
-            window.parent.postMessage({type: 'sensor_data', value: rms}, '*');
-        }
-    });
-    // Inicializace akcelerometru
-    const acl = new Accelerometer({frequency: 10});
-    acl.start();
-    acl.onreading = () => {
-        window.parent.postMessage({type: 'accel', x: acl.x, y: acl.y, z: acl.z}, '*');
-    };
-</script>
-"""
-components.html(sensor_js, height=0)
-
-# Uživatelské rozhraní
+# Hlavní ovládací panel
 col1, col2 = st.columns(2)
+
 with col1:
+    st.subheader("Kalibrace")
     if st.button("Uložit referenci (Stroj OK)"):
-        # Zde bude reálný příjem z JS
-        st.session_state.engine.set_baseline(0.5) 
-        st.success("Referenční stav uložen.")
+        # Simulujeme načtení dat z akcelerometru
+        ref_data = np.random.normal(0, 0.5, 100)
+        st.session_state.engine.set_baseline(st.session_state.engine.calculate_rms(ref_data))
+        st.success("Referenční stav stroje uložen.")
 
 with col2:
-    if st.button("Diagnostikovat"):
-        status, diff = st.session_state.engine.analyze(0.7) # Simulace měření
-        st.metric("Status stroje", status, f"{diff:.2%}")
+    st.subheader("Diagnostika")
+    if st.button("Provést měření"):
+        # Simulujeme aktuální naměřená data
+        current_data = np.random.normal(0, 0.7, 100) 
+        rms = st.session_state.engine.calculate_rms(current_data)
+        status, diff = st.session_state.engine.analyze(rms)
         
+        st.metric("Status stroje", status, f"{diff:.2%}")
+
+# Zobrazení trendu (Profesionální prvek)
+if len(st.session_state.engine.history) > 1:
+    st.subheader("Trend degradace")
+    st.line_chart(st.session_state.engine.history)
+    
