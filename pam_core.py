@@ -1,28 +1,35 @@
-import numpy as np
+import sqlite3
+import datetime
+from fpdf import FPDF
 
 class MaintenanceEngine:
     def __init__(self):
-        self.baseline_rms = None
-        self.history = []
+        self.conn = sqlite3.connect('pam_data.db', check_same_thread=False)
+        self.create_table()
 
-    def calculate_rms(self, x, y, z):
-        """Vypočítá celkovou energii vibrací z os X, Y, Z."""
-        return np.sqrt(x**2 + y**2 + z**2)
+    def create_table(self):
+        self.conn.execute('''CREATE TABLE IF NOT EXISTS history 
+                            (timestamp TEXT, status TEXT, deviation REAL)''')
+        self.conn.commit()
 
-    def set_baseline(self, rms_value):
-        """Uloží referenční hodnotu zdravého stroje."""
-        self.baseline_rms = rms_value
+    def save_result(self, status, diff):
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.conn.execute("INSERT INTO history VALUES (?, ?, ?)", (timestamp, status, diff))
+        self.conn.commit()
 
-    def analyze(self, current_rms):
-        """Analyzuje aktuální stav proti referenci a uloží trend."""
-        if self.baseline_rms is None:
-            return "NENASTAVENO", 0
-        
-        # Výpočet relativní odchylky
-        diff = (current_rms - self.baseline_rms) / (self.baseline_rms + 1e-6)
-        self.history.append(diff)
-        
-        # Logika vyhodnocení stavu
-        status = "STABILNÍ" if abs(diff) < 0.2 else "VAROVÁNÍ"
-        return status, diff
+    def get_history(self):
+        cursor = self.conn.execute("SELECT * FROM history")
+        return cursor.fetchall()
+
+    def generate_pdf(self, status, diff):
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", 'B', 16)
+        pdf.cell(200, 10, txt="PAM-Pro Servisni Report", ln=True, align='C')
+        pdf.set_font("Arial", size=12)
+        pdf.cell(200, 10, txt=f"Stav: {status}", ln=True)
+        pdf.cell(200, 10, txt=f"Odchylka: {diff:.2%}", ln=True)
+        filename = "report.pdf"
+        pdf.output(filename)
+        return filename
         
